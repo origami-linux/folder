@@ -47,49 +47,49 @@ int main(int argc, char *argv[])
 	if (mode == INSTALL_PKG && pkg_name != NULL)
 	{
 		CURL *curl;
-        FILE *fp;
-        CURLcode res;
+		FILE *fp;
+		CURLcode res;
 
-        char url[56 + strlen(pkg_name) + 8];
-        strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
-        strcat(url, pkg_name);
-        strcat(url, ".tar.xz");
-        char outfile[5 + strlen(pkg_name) + 8];
-        strcpy(outfile, "/tmp/");
-        strcat(outfile, pkg_name);
-        strcat(outfile, ".tar.xz");
+		char url[56 + strlen(pkg_name) + 8];
+		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
+		strcat(url, pkg_name);
+		strcat(url, ".tar.xz");
+		char outfile[5 + strlen(pkg_name) + 8];
+		strcpy(outfile, "/tmp/");
+		strcat(outfile, pkg_name);
+		strcat(outfile, ".tar.xz");
 
-        curl = curl_easy_init();
+		curl = curl_easy_init();
 
-        if (curl)
-        {
-        	fp = fopen(outfile,"wb");
-            curl_easy_setopt(curl, CURLOPT_URL, url);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-            curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+		if (curl)
+		{
+			fp = fopen(outfile,"wb");
+			curl_easy_setopt(curl, CURLOPT_URL, url);
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+			curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
 
 			res = curl_easy_perform(curl);
-            curl_easy_cleanup(curl);
-            fclose(fp);
-            if(res != CURLE_OK)
-            {
-                if(res >= 400)
-                    printf("Package '%s' not found in repo, error %d\n", pkg_name, res);
-                else
-                    printf("Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
+			curl_easy_cleanup(curl);
+			fclose(fp);
+			if(res != CURLE_OK)
+			{
+				if(res >= 400)
+					printf("Package '%s' not found in repo, error %d\n", pkg_name, res);
+				else
+					printf("Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
 
-                while(remove(outfile) != 0) {;}
-                return -1;
-            }
+				while(remove(outfile) != 0) {;}
+				return -1;
+			}
 
 			while(remove(outfile) != 0) {;}
-        }
-        else
-        {
-            printf("Curl had an error while being initializing\n");
-            return -1;
-        }
-    }
+		}
+		else
+		{
+			printf("Curl had an error while being initializing\n");
+			return -1;
+		}
+	}
 }
