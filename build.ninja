@@ -1,0 +1,23 @@
+build_dir = out
+source_dir = source
+
+compiler = gcc
+linker = gcc
+
+c_flags = -std=gnu99 -Ofast -pedantic -I${source_dir}
+#c_flags = -std=gnu99 -Og -ggdb -pedantic -I${source_dir}
+ld_flags = -s -lcurl -lpthread -Wl,--gc-sections -Wl,--as-needed
+#ld_flags = -lcurl -lpthread
+
+rule compile
+    depfile = ${out}.dep
+    command = ${compiler} -MD -MF ${out}.dep -o ${out} -c ${in} ${c_flags}
+    description = Compile ${out}
+
+rule link
+    command = ${compiler} -o ${out} ${in} ${ld_flags}
+    description = Compile ${out}
+
+build ${build_dir}/obj/main.o: compile ${source_dir}/main.c
+
+build ${build_dir}/folder: link ${build_dir}/obj/main.o
