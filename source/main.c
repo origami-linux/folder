@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
         if (curl)
         {
-            fp = fopen(outfile,"wb");
+        	fp = fopen(outfile,"wb");
             curl_easy_setopt(curl, CURLOPT_URL, url);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
