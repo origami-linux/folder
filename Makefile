@@ -1,4 +1,4 @@
-link_flags = -s -lcurl -lpthread
+link_flags = -s -lcurl -larchive -lpthread
 build_flags = -std=gnu99 -Ofast -pedantic -Isource
 
 all: folder

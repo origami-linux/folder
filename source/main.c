@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <wchar.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include <curl/curl.h>
 #include <archive.h>
 #include <curl/easy.h>
-#include <libtar.h>
 
 size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
@@ -15,81 +15,184 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return written;
 }
 
+char **pkgs = NULL;
+
+void install_pkg(char* pkg)
+{
+    struct archive *a;
+    struct archive *entry;
+    int archive_ret;
+
+	CURL *curl;
+	CURLcode res;
+	FILE *fp;
+	
+    char outtar[5 + strlen(pkg) + 8];
+	strcpy(outtar, "/tmp/");
+	strcat(outtar, pkg);
+	strcat(outtar, ".tar.xz");
+
+    char outmeta[5 + strlen(pkg) + 6];
+	strcpy(outmeta, "/tmp/");
+	strcat(outmeta, pkg);
+	strcat(outmeta, ".json");
+
+    curl = curl_easy_init();
+
+	if (curl)
+	{
+        char url[56 + strlen(pkg) + 13];
+	    strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
+	    strcat(url, pkg);
+	    strcat(url, "/data.tar.xz");
+
+
+		fp = fopen(outtar,"wb");
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		fclose(fp);
+		if(res != CURLE_OK)
+		{
+			if(res == 22)
+            {
+				fprintf(stderr, "Package '%s' not found in repo\n", pkg);
+            }
+			else
+            {
+				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
+            }
+
+			while(remove(outtar) != 0) {;}
+            free(pkgs);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+	{
+		fprintf(stderr, "Curl had an error while being initializing\n");
+        free(pkgs);
+		exit(EXIT_FAILURE);
+	}
+
+    curl = curl_easy_init();
+
+	if (curl)
+	{
+        char url[56 + strlen(pkg) + 13];
+	    strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
+	    strcat(url, pkg);
+	    strcat(url, "/meta.json");
+
+        fp = fopen(outmeta,"w");
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+        fclose(fp);
+
+		if(res != CURLE_OK)
+		{
+			if(res == 22)
+            {
+				fprintf(stderr, "Metadata for package '%s' not found in repo\n", pkg);
+            }
+			else
+            {
+				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
+            }
+
+			while(remove(outtar) != 0) {;}
+			while(remove(outmeta) != 0) {;}
+            free(pkgs);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+	{
+		fprintf(stderr, "Curl had an error while being initializing\n");
+        free(pkgs);
+		exit(EXIT_FAILURE);
+	}
+
+    // a = archive_read_new();
+	while(remove(outtar) != 0) {;}
+    while(remove(outmeta) != 0) {;}
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
 	bool yes = false;
 
-	char *pkg_name = NULL;
+    int pkg_num = 0;
 
-	enum mode { INSTALL_PKG } mode;
+	enum mode { NO_MODE, INSTALL_PKG } mode;
+    mode = NO_MODE;
 
-	while ((opt = getopt(argc, argv, "i:p: yh")) != -1)
+	for(int i = 1; i < argc; i++)
 	{
-		switch (opt)
-		{
+        if(argv[i][0] == '-' && strlen(argv[i]) >= 2)
+        {
+		    switch(argv[i][1])
+		    {
 
-		case 'i':
-			mode = INSTALL_PKG;
-			pkg_name = strdup(optarg);
-			break;
+		    case 'i':
+                if(mode != INSTALL_PKG)
+                {
+		    	    mode = INSTALL_PKG;
+                }
+                else
+                {
+                    free(pkgs);
+                    fprintf(stderr, "Cannot have multiple install options\n");
+                    exit(EXIT_FAILURE);
+                }
+		    	break;
 
-		case 'y': yes = true; break;
+		    case 'y': yes = true; break;
 
-		case 'h': /* Fall through */
-		default:
-			fprintf(stderr, "Usage: %s [-iyh] [package...]\n", argv[0]);
-			exit(EXIT_FAILURE);
-		}
+		    case 'h': /* Fall through */
+		    default:
+		    	fprintf(stderr, "Usage: %s [-iyh, install] [package...]\n", argv[0]);
+		    	exit(EXIT_FAILURE);
+		    }
+        }
+        else if(strcmp(argv[i], "install") == 0)
+        {
+            if(mode != INSTALL_PKG)
+            {
+		    	mode = INSTALL_PKG;
+            }
+            else
+            {
+                fprintf(stderr, "Cannot have multiple install options\n");
+                free(pkgs);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            pkgs = realloc(pkgs, sizeof(pkgs) + sizeof(argv[i]));
+            pkgs[pkg_num] = argv[i];
+            pkg_num++;
+        }
 	}
 
-	// TODO: Debug this, gives SEGV
-	if (mode == INSTALL_PKG && pkg_name != NULL)
+	if (mode == INSTALL_PKG && pkg_num > 0)
 	{
-		CURL *curl;
-		FILE *fp;
-		CURLcode res;
-
-		char url[56 + strlen(pkg_name) + 8];
-		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
-		strcat(url, pkg_name);
-		strcat(url, ".tar.xz");
-		char outfile[5 + strlen(pkg_name) + 8];
-		strcpy(outfile, "/tmp/");
-		strcat(outfile, pkg_name);
-		strcat(outfile, ".tar.xz");
-
-		curl = curl_easy_init();
-
-		if (curl)
-		{
-			fp = fopen(outfile,"wb");
-			curl_easy_setopt(curl, CURLOPT_URL, url);
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-			curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
-
-			res = curl_easy_perform(curl);
-			curl_easy_cleanup(curl);
-			fclose(fp);
-			if(res != CURLE_OK)
-			{
-				if(res >= 400)
-					printf("Package '%s' not found in repo, error %d\n", pkg_name, res);
-				else
-					printf("Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
-
-				while(remove(outfile) != 0) {;}
-				return -1;
-			}
-
-			while(remove(outfile) != 0) {;}
-		}
-		else
-		{
-			printf("Curl had an error while being initializing\n");
-			return -1;
-		}
+        for(int i = 0; i < pkg_num; i++)
+        {
+            install_pkg(pkgs[i]);
+        }
 	}
 }
