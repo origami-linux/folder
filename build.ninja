@@ -16,7 +16,7 @@ rule compile
 
 rule link
     command = ${compiler} -o ${out} ${in} ${ld_flags}
-    description = Compile ${out}
+    description = Link ${out}
 
 build ${build_dir}/obj/main.o: compile ${source_dir}/main.c
 
