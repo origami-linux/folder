@@ -1,5 +1,6 @@
 build_dir = out
-source_dir = source
+source_dir = src
+obj_dir = obj
 
 compiler = gcc
 linker = gcc
@@ -10,14 +11,18 @@ ld_flags = -s -lcurl -lpthread -Wl,--gc-sections -Wl,--as-needed
 #ld_flags = -lcurl -lpthread
 
 rule compile
-    depfile = ${out}.dep
-    command = ${compiler} -MD -MF ${out}.dep -o ${out} -c ${in} ${c_flags}
+    depfile = ${out}
+    command = ${compiler} -MD -MF ${out} -o ${out} -c ${in} ${c_flags}
     description = Compile ${out}
 
 rule link
     command = ${compiler} -o ${out} ${in} ${ld_flags}
     description = Link ${out}
 
-build ${build_dir}/obj/main.o: compile ${source_dir}/main.c
+rule clean
+    command = rm -f ${obj_dir}/*.o ${build_dir}/folder
+    description = Clean
 
-build ${build_dir}/folder: link ${build_dir}/obj/main.o
+build ${obj_dir}/main.o: compile ${source_dir}/main.c
+
+build ${build_dir}/folder: link ${obj_dir}/main.o

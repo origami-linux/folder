@@ -1,13 +1,13 @@
 link_flags = -s -lcurl -larchive -lpthread
 build_flags = -std=gnu99 -Ofast -pedantic -Isource
 
-all: folder
+all: out/folder
 
-folder: main.o
+out/folder: obj/main.o
 	gcc -o $@ $^ $(link_flags)
 
-main.o: source/main.c
+obj/main.o: src/main.c
 	gcc -o $@ -c $< $(build_flags)
 
 clean:
-	rm -f folder
+	rm -f obj/*.o out/folder
