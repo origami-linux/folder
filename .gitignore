@@ -1,4 +1,3 @@
-out
+x86_64
 .ninja_*
 *.o
-folder

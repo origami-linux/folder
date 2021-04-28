@@ -1,13 +1,22 @@
-link_flags = -s -lcurl -larchive -lpthread
-build_flags = -std=gnu99 -Ofast -pedantic -Isource
+build_dir = out
+source_dir = src
+obj_dir = obj
 
-all: out/folder
+compiler = clang
+linker = clang
 
-out/folder: obj/main.o
-	gcc -o $@ $^ $(link_flags)
+c_flags = -std=gnu99 -O3 -pedantic
+ld_flags = -s -lcurl -lpthread -Wl,--gc-sections -Wl,--as-needed
 
-obj/main.o: src/main.c
-	gcc -o $@ -c $< $(build_flags)
+all: x86_64/$(build_dir)/folder
+
+# Link
+x86_64/$(build_dir)/folder: x86_64/$(obj_dir)/main.o
+	$(compiler) -o $@ $^ -target x86_64-elf-linux $(ld_flags)
+
+# Compile
+x86_64/$(obj_dir)/main.o: $(source_dir)/main.c
+	$(linker) -o $@ -c $< -target x86_64-elf-linux $(c_flags)
 
 clean:
-	rm -f obj/*.o out/folder
+	rm -f $(shell find ./ -type f -name '*.o') $(shell find ./ -type f -name 'folder')
