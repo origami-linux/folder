@@ -4,10 +4,12 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <unistd.h>
-
 #include <curl/curl.h>
-#include <archive.h>
 #include <curl/easy.h>
+#include <ini.h>
+#include <archive.h>
+
+#include "meta.h"
 
 size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
@@ -19,10 +21,6 @@ char **pkgs = NULL;
 
 void install_pkg(char* pkg)
 {
-	struct archive *a;
-	struct archive *entry;
-	int archive_ret;
-
 	CURL *curl;
 	CURLcode res;
 	FILE *fp;
@@ -36,6 +34,59 @@ void install_pkg(char* pkg)
 	strcpy(outmeta, "/tmp/");
 	strcat(outmeta, pkg);
 	strcat(outmeta, ".json");
+
+	curl = curl_easy_init();
+
+	if (curl)
+	{
+		char url[56 + strlen(pkg) + 10];
+		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
+		strcat(url, pkg);
+		strcat(url, "/meta.ini");
+
+		fp = fopen(outmeta,"w");
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		fclose(fp);
+
+		if(res != CURLE_OK)
+		{
+			if(res == 22)
+			{
+				fprintf(stderr, "Metadata for package '%s' not found in repo\n", pkg);
+			}
+			else
+			{
+				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
+			}
+
+			remove(outmeta);
+			free(pkgs);
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+	{
+		fprintf(stderr, "Curl had an error while being initializing\n");
+		free(pkgs);
+		exit(EXIT_FAILURE);
+	}
+	
+	pkg_meta meta;
+
+	if(ini_parse(outmeta, &meta_ini_handler, &meta) < 0)
+	{
+		fprintf(stderr, "Error reading metafile\n");
+		remove(outmeta);
+		free(pkgs);
+		exit(EXIT_FAILURE);
+	}
 
 	curl = curl_easy_init();
 
@@ -67,7 +118,7 @@ void install_pkg(char* pkg)
 				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
 			}
 
-			while(remove(outtar) != 0) {;}
+			remove(outtar);
 			free(pkgs);
 			exit(EXIT_FAILURE);
 		}
@@ -79,53 +130,7 @@ void install_pkg(char* pkg)
 		exit(EXIT_FAILURE);
 	}
 
-	curl = curl_easy_init();
-
-	if (curl)
-	{
-		char url[56 + strlen(pkg) + 11];
-		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
-		strcat(url, pkg);
-		strcat(url, "/meta.json");
-
-		fp = fopen(outmeta,"w");
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
-
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-		fclose(fp);
-
-		if(res != CURLE_OK)
-		{
-			if(res == 22)
-			{
-				fprintf(stderr, "Metadata for package '%s' not found in repo\n", pkg);
-			}
-			else
-			{
-				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
-			}
-
-			while(remove(outtar) != 0) {;}
-			while(remove(outmeta) != 0) {;}
-			free(pkgs);
-			exit(EXIT_FAILURE);
-		}
-	}
-	else
-	{
-		fprintf(stderr, "Curl had an error while being initializing\n");
-		free(pkgs);
-		exit(EXIT_FAILURE);
-	}
-
-	// a = archive_read_new();
-	while(remove(outtar) != 0) {;}
-	while(remove(outmeta) != 0) {;}
+	remove(outtar);
 }
 
 int main(int argc, char *argv[])
