@@ -25,15 +25,15 @@ void install_pkg(char* pkg)
 	CURLcode res;
 	FILE *fp;
 	
+	char outmeta[5 + strlen(pkg) + 5];
+	strcpy(outmeta, "/tmp/");
+	strcat(outmeta, pkg);
+	strcat(outmeta, ".oni");
+
 	char outtar[5 + strlen(pkg) + 8];
 	strcpy(outtar, "/tmp/");
 	strcat(outtar, pkg);
 	strcat(outtar, ".tar.xz");
-
-	char outmeta[5 + strlen(pkg) + 6];
-	strcpy(outmeta, "/tmp/");
-	strcat(outmeta, pkg);
-	strcat(outmeta, ".json");
 
 	curl = curl_easy_init();
 
@@ -42,7 +42,7 @@ void install_pkg(char* pkg)
 		char url[56 + strlen(pkg) + 10];
 		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
 		strcat(url, pkg);
-		strcat(url, "/meta.ini");
+		strcat(url, "/meta.oni");
 
 		fp = fopen(outmeta,"w");
 		curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -59,7 +59,7 @@ void install_pkg(char* pkg)
 		{
 			if(res == 22)
 			{
-				fprintf(stderr, "Metadata for package '%s' not found in repo\n", pkg);
+				fprintf(stderr, "Package '%s' not found in repo\n", pkg);
 			}
 			else
 			{
@@ -111,7 +111,7 @@ void install_pkg(char* pkg)
 		{
 			if(res == 22)
 			{
-				fprintf(stderr, "Package '%s' not found in repo\n", pkg);
+				fprintf(stderr, "Data for package '%s' not found in repo\n", pkg);
 			}
 			else
 			{

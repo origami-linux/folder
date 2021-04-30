@@ -8,31 +8,43 @@ int meta_ini_handler(void *meta, const char *section, const char *name, const ch
     
     if(strcmp(name, "developer") == 0)
 	{
-		removechar(&val, '"');
+		if(strcmp(val, "$NULL") == 0)
+			return 0;
+
 		pkgmeta->dev = val;
 	}
     else if(strcmp(name, "description") == 0)
 	{
-		removechar(&val, '"');
+		if(strcmp(val, "$NULL") == 0)
+			return 0;
+
 		pkgmeta->desc = val;
 	}
 	else if(strcmp(name, "version") == 0)
 	{
-		removechar(&val, '"');
+		if(strcmp(val, "$NULL") == 0)
+			return 0;
+
 		pkgmeta->ver = val;
 	}
 	else if(strcmp(name, "size") == 0)
 	{
+		if(strcmp(val, "$NULL") == 0)
+			return 0;
+
 		pkgmeta->size = atoi(val);
 	}
 	else if(strcmp(name, "dependencies") == 0)
 	{
-		removechar(&val, '[');
-		removechar(&val, ']');
-		removechar(&val, ' ');
-		removechar(&val, '"');
-	
-		pkgmeta->deps = strsplit(val, ',');
+		if(strcmp(val, "$NULL") == 0)
+		{
+			pkgmeta->deps = NULL;
+		}
+		else
+		{
+			removechars(val, ' ');
+			pkgmeta->deps = strsplit(val, ',');
+		}
 	}
 	else
 	{

@@ -1,15 +1,29 @@
 #include "strutils.h"
 
-void removechar(char **str, char t)
+void removechar(char *str, int index)
 {
     int i,j;
     i = 0;
-    while(i < strlen(*str))
+    while(i < strlen(str))
     {
-        if (*str[i] == t) 
+        if(i == index) 
         { 
-            for (j = i; j < strlen(*str); j++)
-                *str[j] = *str[j+1];   
+            for(j = i; j < strlen(str); j++)
+                str[j] = str[j+1];   
+        } else i++;
+    }
+}
+
+void removechars(char *str, char t)
+{
+    int i,j;
+    i = 0;
+    while(i < strlen(str))
+    {
+        if(str[i] == t) 
+        { 
+            for(j = i; j < strlen(str); j++)
+                str[j] = str[j+1];   
         } else i++;
     }
 }
@@ -50,7 +64,7 @@ char** strsplit(char* a_str, const char a_delim)
             *(result + idx++) = strdup(token);
             token = strtok(0, delim);
         }
-        assert(idx == count - 1);
+
         *(result + idx) = 0;
     }
 
