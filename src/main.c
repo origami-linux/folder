@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
-#include <ini.h>
 #include <archive.h>
 
 #include "meta.h"
@@ -77,18 +76,6 @@ void install_pkg(char* pkg)
 		free(pkgs);
 		exit(EXIT_FAILURE);
 	}
-	
-	pkg_meta meta;
-
-	if(ini_parse(outmeta, &meta_ini_handler, &meta) < 0)
-	{
-		fprintf(stderr, "Error reading metafile\n");
-		remove(outmeta);
-		free(pkgs);
-		exit(EXIT_FAILURE);
-	}
-
-	curl = curl_easy_init();
 
 	if (curl)
 	{
