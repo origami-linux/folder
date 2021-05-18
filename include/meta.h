@@ -3,15 +3,17 @@
 #include <stdlib.h>
 #include <json-c/json.h>
 
-#include "strutils.h"
+#include "ioutils.h"
 
 typedef struct
 {
 	char *dev;
 	char *desc;
 	char *ver;
-	int size;
+	uint64_t size;
 	char **deps;
 } pkg_meta;
+
+pkg_meta parse_meta(char *path);
 
 #endif
