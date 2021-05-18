@@ -1,3 +1,18 @@
+/* Folder - Origami Linux package manager.
+	License - MIT
+
+	Revision history:
+		* 0.1 - 26 Apr 2021
+
+	To do:
+		* Cache the meta and data files (offline install/reinstall) (that's why i removed the `remove`)
+		* Keep list/database of installed programs
+
+	Notes:
+		* Untested (once someone tests this remove this note)
+	Bugs:
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -10,10 +25,14 @@
 
 #include "meta.h"
 
-size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-	size_t written = fwrite(ptr, size, nmemb, stream);
-	return written;
+CURLcode download(FILE *fp, char *url, CURL *curl) {
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+
+	return curl_easy_perform(curl);
 }
 
 char **pkgs = NULL;
@@ -21,10 +40,10 @@ char **pkgs = NULL;
 void install_pkg(char* pkg)
 {
 	CURL *curl;
-	CURLcode res;
-	FILE *fp;
+	CURLcode res_meta, res_data;
+	FILE *fp_meta, *fp_data;
 
-	char outmeta[5 + strlen(pkg) + 6];
+	char outmeta[5 + strlen(pkg) + 5];
 	strcpy(outmeta, "/tmp/");
 	strcat(outmeta, pkg);
 	strcat(outmeta, ".json");
@@ -36,90 +55,65 @@ void install_pkg(char* pkg)
 
 	curl = curl_easy_init();
 
-	if (curl)
-	{
-		char url[56 + strlen(pkg) + 11];
-		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
-		strcat(url, pkg);
-		strcat(url, "/meta.json");
-
-		fp = fopen(outmeta,"w");
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
-
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-		fclose(fp);
-
-		if(res != CURLE_OK)
-		{
-			if(res == 22)
-			{
-				fprintf(stderr, "Package '%s' not found in repo\n", pkg);
-			}
-			else
-			{
-				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
-			}
-
-			remove(outmeta);
-			free(pkgs);
-			exit(EXIT_FAILURE);
-		}
-	}
-	else
-	{
+	if (!curl) {
 		fprintf(stderr, "Curl had an error while being initializing\n");
 		free(pkgs);
 		exit(EXIT_FAILURE);
 	}
 
-	curl = curl_easy_init();
+	/* No need of `else`, since if curl doesn't initialize, we exit. */
 
-	if (curl)
+	char url_meta[56 + strlen(pkg) + 10];
+	strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
+	strcat(url, pkg);
+	strcat(url, "/meta.json");
+
+	char url_data[56 + strlen(pkg) + 13];
+	strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
+	strcat(url, pkg);
+	strcat(url, "/data.tar.xz");
+
+	fp_meta = fopen(outmeta,"w");
+	res_meta = download(fp_meta, url_meta, curl);
+	fclose(fp_meta);
+
+	fp_data = fopen(outtar,"wb");
+	res_data = download(fp_data, url_data, curl);
+	fclose(fp_data);
+
+	curl_easy_cleanup(curl);
+
+	if(res_meta != CURLE_OK)
 	{
-		char url[56 + strlen(pkg) + 13];
-		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
-		strcat(url, pkg);
-		strcat(url, "/data.tar.xz");
-
-		fp = fopen(outtar,"wb");
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
-
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-		fclose(fp);
-		if(res != CURLE_OK)
+		if(res_meta == 22)
 		{
-			if(res == 22)
-			{
-				fprintf(stderr, "Data for package '%s' not found in repo\n", pkg);
-			}
-			else
-			{
-				fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
-			}
-
-			remove(outtar);
-			free(pkgs);
-			exit(EXIT_FAILURE);
+			fprintf(stderr, "Package '%s' not found in repo\n", pkg);
 		}
-	}
-	else
+		else
+		{
+			fprintf(stderr, "Curl had error %d: '%s'\n", res, curl_easy_strerror(res));
+		}
+
+		//remove(outmeta);
+		free(pkgs);
+		exit(EXIT_FAILURE);
+	} else if(res_data != CURLE_OK)
 	{
-		fprintf(stderr, "Curl had an error while being initializing\n");
+		if(res_data == 22)
+		{
+			fprintf(stderr, "Data for package '%s' not found in repo\n", pkg);
+		}
+		else
+		{
+			fprintf(stderr, "Curl had error %d: '%s'\n", res_data, curl_easy_strerror(res_data));
+		}
+
+		//remove(outtar);
 		free(pkgs);
 		exit(EXIT_FAILURE);
 	}
 
-	remove(outtar);
+	//remove(outtar);
 }
 
 int main(int argc, char *argv[])
