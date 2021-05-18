@@ -23,11 +23,11 @@ void install_pkg(char* pkg)
 	CURL *curl;
 	CURLcode res;
 	FILE *fp;
-	
-	char outmeta[5 + strlen(pkg) + 5];
+
+	char outmeta[5 + strlen(pkg) + 6];
 	strcpy(outmeta, "/tmp/");
 	strcat(outmeta, pkg);
-	strcat(outmeta, ".oni");
+	strcat(outmeta, ".json");
 
 	char outtar[5 + strlen(pkg) + 8];
 	strcpy(outtar, "/tmp/");
@@ -38,10 +38,10 @@ void install_pkg(char* pkg)
 
 	if (curl)
 	{
-		char url[56 + strlen(pkg) + 10];
+		char url[56 + strlen(pkg) + 11];
 		strcpy(url, "https://github.com/origami-linux/packages-repo/raw/main/");
 		strcat(url, pkg);
-		strcat(url, "/meta.oni");
+		strcat(url, "/meta.json");
 
 		fp = fopen(outmeta,"w");
 		curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -76,6 +76,8 @@ void install_pkg(char* pkg)
 		free(pkgs);
 		exit(EXIT_FAILURE);
 	}
+
+	curl = curl_easy_init();
 
 	if (curl)
 	{
