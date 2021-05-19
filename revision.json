@@ -1,19 +1,19 @@
 {
-    "Folder - Linux package manager.":"0.0.1 aplha",
-    "License":"zlib",
+	"Folder - Linux package manager.":"0.0.1 aplha",
+	"License":"zlib",
 
-    "Revision history":
-    [
-	"0.1 - 26 Apr 2021",
-	"0.2 - 19 May 2021"
-    ],
+	"Revision history":
+	[
+		"0.1 - 26 Apr 2021",
+		"0.2 - 19 May 2021"
+	],
 
-    "To do":
-    [
-	"Keep list/database of installed programs",
-	"Actually install programs"
-    ],
+	"To do":
+	[
+		"Keep list/database of installed programs",
+		"Actually install programs"
+	],
 
-    "Notes":[],
-    "Bugs":[]
+	"Notes":[],
+	"Bugs":[]
 }
