@@ -1,6 +1,6 @@
-# Folder
-## Origami Linux's Lightweight Package Manager
-### Dependencies
-libarchive's Development package, source available at https://github.com/libarchive/libarchive
-libcurl's Development package source available at https://github.com/curl/curl
-json-c's Development package source available at https://github.com/json-c/json-c
+# Folder<br>
+## Origami Linux's Lightweight Package Manager<br>
+### Dependencies<br>
+* libarchive's Development package, source available at https://github.com/libarchive/libarchive<br>
+* libcurl's Development package source available at https://github.com/curl/curl<br>
+* json-c's Development package source available at https://github.com/json-c/json-c<br>
