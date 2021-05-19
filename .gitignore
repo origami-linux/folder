@@ -1,5 +1,4 @@
 .vscode
-x86_64/out/*
+x86_64/out/folder
 x86_64/obj/*
 !.gitkeep
-*.o

@@ -1,16 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <wchar.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <linux/limits.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <archive.h>
+#include <archive_entry.h>
 
 #include "meta.h"
 
-#define lengthof(x) (sizeof(x) / sizeof(*x))
+#define lengthof(x)(sizeof(x) / sizeof(*x))
 
 int is_string_in_array(char** arr, char* val)
 {
@@ -27,13 +28,19 @@ pkg_meta *metas = NULL;
 int pkg_num = 0;
 int meta_num = 0;
 
+void free_ptrs()
+{
+	free(pkgs);
+	free(metas);
+}
+
 CURLcode download(FILE *fp, char *url, CURL *curl)
 {
 	curl_easy_reset(curl);
-	if (!curl)
+	if(!curl)
 	{
 		fprintf(stderr, "Curl had an error while being initializing\n");
-		free(pkgs);
+		
 		exit(EXIT_FAILURE);
 	}
 
@@ -48,7 +55,7 @@ CURLcode download(FILE *fp, char *url, CURL *curl)
 	return ret;
 }
 
-void install_pkg(char *pkg)
+void download_pkg(char *pkg)
 {
 	CURL *curl = curl_easy_init();
 
@@ -95,10 +102,133 @@ void install_pkg(char *pkg)
 			fprintf(stderr, "Curl had error %d: '%s'\n", res_data, curl_easy_strerror(res_data));
 		}
 
-		free(pkgs);
+		
+		exit(EXIT_FAILURE);
+	}
+}
+
+int copy_data(struct archive *ar, struct archive *aw)
+{
+  	int r;
+  	const void *buff;
+  	size_t size;
+  	off_t offset;
+
+  	for(;;)
+	{
+    	r = archive_read_data_block(ar, &buff, &size, &offset);
+
+    	if(r == ARCHIVE_EOF)
+      		return(ARCHIVE_OK);
+    	if(r < ARCHIVE_OK)
+      		return(r);
+
+    	r = archive_write_data_block(aw, buff, size, offset);
+
+    	if(r < ARCHIVE_OK)
+		{
+      		fprintf(stderr, "%s\n", archive_error_string(aw));
+      		return(r);
+    	}
+  	}
+}
+
+void extract(char *filename, char *dest)
+{
+  	struct archive *a;
+  	struct archive *ext;
+  	struct archive_entry *entry;
+  	int flags;
+  	int r;
+
+  	flags = ARCHIVE_EXTRACT_TIME;
+  	flags |= ARCHIVE_EXTRACT_PERM;
+  	flags |= ARCHIVE_EXTRACT_ACL;
+  	flags |= ARCHIVE_EXTRACT_FFLAGS;
+
+  	a = archive_read_new();
+  	archive_read_support_format_tar(a);
+	archive_read_support_compression_xz(a);
+
+  	ext = archive_write_disk_new();
+  	archive_write_disk_set_options(ext, flags);
+  	archive_write_disk_set_standard_lookup(ext);
+
+  	if((r = archive_read_open_filename(a, filename, 10240)))
+	{
+		fprintf(stderr, "Unable to load '%s'\n", filename);
+  	  	exit(EXIT_FAILURE);
+	}
+
+	char cwd[PATH_MAX];
+
+	if(getcwd(cwd, sizeof(cwd)) == NULL)
+	{
+		fprintf(stderr, "Unable to get current directory");
 		exit(EXIT_FAILURE);
 	}
 
+	rmdir(dest);
+	mkdir("/tmp/folder-pkgs", 0444);
+	mkdir(dest, 0777);
+	chdir(dest);
+
+  	for(;;)
+	{
+  	  	r = archive_read_next_header(a, &entry);
+
+  	  	if(r == ARCHIVE_EOF)
+  	    	break;
+  	 	if(r < ARCHIVE_OK)
+  	    	fprintf(stderr, "%s\n", archive_error_string(a));
+  	  	if(r < ARCHIVE_WARN)
+  	    	exit(EXIT_FAILURE);
+
+  	  	r = archive_write_header(ext, entry);
+
+  		if(r < ARCHIVE_OK)
+		{
+  	    	fprintf(stderr, "%s\n", archive_error_string(ext));
+		}
+  	  	else if(archive_entry_size(entry) > 0)
+		{
+  	    	r = copy_data(a, ext);
+
+  	    	if(r < ARCHIVE_OK)
+  	      		fprintf(stderr, "%s\n", archive_error_string(ext));
+  	    	if(r < ARCHIVE_WARN)
+  	      		exit(EXIT_FAILURE);
+  	  	}
+
+  	  	r = archive_write_finish_entry(ext);
+
+  	  	if(r < ARCHIVE_OK)
+  	    	fprintf(stderr, "%s\n", archive_error_string(ext));
+  	  	if(r < ARCHIVE_WARN)
+  	    	exit(EXIT_FAILURE);
+  	}
+
+	chdir(cwd);
+
+  	archive_read_close(a);
+  	archive_read_free(a);
+  	archive_write_close(ext);
+  	archive_write_free(ext);
+}
+
+
+void install_pkg(char *pkg)
+{
+	char in_data[23 + strlen(pkg) + 8];
+	strcpy(in_data, "/var/cache/folder/data/");
+	strcat(in_data, pkg);
+	strcat(in_data, ".tar.xz");
+
+	char dest[17 + strlen(pkg) + 1];
+	strcpy(dest, "/tmp/folder-pkgs/");
+	strcat(dest, pkg);
+
+    extract((char*)&in_data,(char*)&dest); // extracts in /tmp/folder-pkgs/${pkg}
 }
 
 void pre_install()
@@ -148,7 +278,7 @@ void pre_install()
 			}
 
 			remove(out_meta);
-			free(pkgs);
+			
 			exit(EXIT_FAILURE);
 		}
 
@@ -198,12 +328,25 @@ void pre_install()
 
 	for(int i = 0; i < pkg_num; i++)
 	{
+		download_pkg(pkgs[i]);
+	}
+
+	for(int i = 0; i < pkg_num; i++)
+	{
 		install_pkg(pkgs[i]);
 	}
 }
 
 int main(int argc, char *argv[])
 {
+	if(geteuid() != 0)
+	{
+		fprintf(stderr, "You need root privileges to run folder\n");
+		exit(EXIT_FAILURE);
+	}
+
+	atexit(free_ptrs);
+
 	int opt;
 
 	enum mode { NO_MODE, INSTALL_PKG } mode = NO_MODE;
@@ -221,7 +364,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					free(pkgs);
+					
 					fprintf(stderr, "Cannot have multiple install options\n");
 					exit(EXIT_FAILURE);
 				}
@@ -244,7 +387,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				fprintf(stderr, "Cannot have multiple install options\n");
-				free(pkgs);
+				
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -260,8 +403,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (mode == INSTALL_PKG && pkg_num > 0)
+	if(mode == INSTALL_PKG && pkg_num > 0)
 	{
+		if(pkgs == NULL)
+		{
+			fprintf(stdout, "Usage: %s [-iyh, install] [package...]\n", argv[0]);
+			exit(EXIT_FAILURE);
+		}
+
 		pre_install();
 	}
 }
