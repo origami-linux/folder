@@ -60,17 +60,23 @@ void install_pkg(char *pkg)
 	strcat(url_data, pkg);
 	strcat(url_data, "/data.tar.xz");
 
-	char outtar[23 + strlen(pkg) + 8];
-	strcpy(outtar, "/var/cache/folder/data/");
-	strcat(outtar, pkg);
-	strcat(outtar, ".tar.xz");
+	char out_data[23 + strlen(pkg) + 8];
+	strcpy(out_data, "/var/cache/folder/data/");
+	strcat(out_data, pkg);
+	strcat(out_data, ".tar.xz");
 
-	remove(outtar);
+	char out_data_filename[strlen(pkg) + 8];
+	strcpy(out_data_filename, pkg);
+	strcat(out_data_filename, ".tar.xz");
 
-	fp_data = fopen(outtar,"wb");
+	remove(out_data);
+
+	printf("Downloading '%s'...\n", out_data_filename);
+
+	fp_data = fopen(out_data,"wb");
 	if(!fp_data)
 	{
-		fprintf(stderr, "error: unable to write to file '%s'\n", outtar);
+		fprintf(stderr, "error: unable to write to file '%s'\n", out_data);
 	}
 
 	res_data = download(fp_data, url_data, curl);
@@ -113,17 +119,17 @@ void pre_install()
 		strcat(url_meta, pkg);
 		strcat(url_meta, "/meta.json");
 
-		char outmeta[23 + strlen(pkg) + 6];
-		strcpy(outmeta, "/var/cache/folder/meta/");
-		strcat(outmeta, pkg);
-		strcat(outmeta, ".json");
+		char out_meta[23 + strlen(pkg) + 6];
+		strcpy(out_meta, "/var/cache/folder/meta/");
+		strcat(out_meta, pkg);
+		strcat(out_meta, ".json");
 
-		remove(outmeta);
+		remove(out_meta);
 
-		fp_meta = fopen(outmeta,"w");
+		fp_meta = fopen(out_meta,"w");
 		if(!fp_meta)
 		{
-			fprintf(stderr, "error: unable to write to file '%s'\n", outmeta);
+			fprintf(stderr, "error: unable to write to file '%s'\n", out_meta);
 		}
 
 		res_meta = download(fp_meta, url_meta, curl);
@@ -141,12 +147,12 @@ void pre_install()
 				fprintf(stderr, "Curl had error %d: '%s'\n", res_meta, curl_easy_strerror(res_meta));
 			}
 
-			remove(outmeta);
+			remove(out_meta);
 			free(pkgs);
 			exit(EXIT_FAILURE);
 		}
 
-		pkg_meta meta = parse_meta(outmeta);
+		pkg_meta meta = parse_meta(out_meta);
 		metas = realloc(metas, sizeof(metas) + sizeof(meta));
 		metas[meta_num] = meta;
 
@@ -169,7 +175,31 @@ void pre_install()
 		meta_num++;
 	}
 
-	printf("\nSize required on disk: %lu bytes\n", total_size);
+	printf("\nSize required on disk: %lu bytes\n\n", total_size);
+
+	if(!yes)
+	{
+		printf("Do you want to continue? [Y/n] ");
+	
+		char ch = getchar();
+	
+		switch(ch)
+		{
+		case 'y':
+		case 'Y':
+			break;
+	
+		default:
+			fprintf(stderr, "Aborting\n");
+			exit(EXIT_FAILURE);
+			break;
+		}
+	}
+
+	for(int i = 0; i < pkg_num; i++)
+	{
+		install_pkg(pkgs[i]);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -199,7 +229,7 @@ int main(int argc, char *argv[])
 
 			case 'y': yes = true; break;
 
-			case 'h': /* Fall through */
+			case 'h':
 			default:
 				fprintf(stdout, "Usage: %s [-iyh, install] [package...]\n", argv[0]);
 				exit(EXIT_FAILURE);
