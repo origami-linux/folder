@@ -1,20 +1,3 @@
-/* Folder - Origami Linux package manager.
-	License - zlib
-
-	Revision history:
-		* 0.1 - 26 Apr 2021
-		* 0.2 - 18 May 2021
-
-	To do:
-		* Keep list/database of installed programs
-		* Actually install programs
-
-	Notes:
-		* None
-	Bugs:
-		* None :)
-*/
-
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
