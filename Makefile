@@ -9,7 +9,7 @@ srcs = $(wildcard $(srcdir)/*.c)
 objs = $(patsubst $(srcdir)/%,$(objdir)/%,$(srcs:.c=.o))
 
 cflags = -std=gnu99 -O3 -pedantic -Iinclude -Wno-deprecated
-ldflags = -s -lcurl -larchive -ljson-c -Wl,--gc-sections
+ldflags = -s -lcurl -larchive -ljson-c -Wall -Wextra -Wl,--gc-sections
 
 all: x86_64/$(outdir)/folder
 

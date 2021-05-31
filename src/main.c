@@ -3,7 +3,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <linux/limits.h>
+
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <archive.h>
@@ -102,7 +104,6 @@ void download_pkg(char *pkg)
 			fprintf(stderr, "Curl had error %d: '%s'\n", res_data, curl_easy_strerror(res_data));
 		}
 
-		
 		exit(EXIT_FAILURE);
 	}
 }
@@ -216,19 +217,362 @@ void extract(char *filename, char *dest)
   	archive_write_free(ext);
 }
 
-
 void install_pkg(char *pkg)
 {
+	printf("Installing package '%s'...\n", pkg);
+
 	char in_data[23 + strlen(pkg) + 8];
 	strcpy(in_data, "/var/cache/folder/data/");
 	strcat(in_data, pkg);
 	strcat(in_data, ".tar.xz");
 
-	char dest[17 + strlen(pkg) + 1];
-	strcpy(dest, "/tmp/folder-pkgs/");
-	strcat(dest, pkg);
+	char data_dest[17 + strlen(pkg) + 1];
+	strcpy(data_dest, "/tmp/folder-pkgs/");
+	strcat(data_dest, pkg);
 
-    extract((char*)&in_data,(char*)&dest); // extracts in /tmp/folder-pkgs/${pkg}
+    extract(in_data, data_dest); // extracts in /tmp/folder-pkgs/${pkg}
+    
+    struct dirent *de;
+
+	char bin_src[strlen(data_dest) + 6];
+	strcpy(bin_src, data_dest);
+	strcat(bin_src, "/bin/");
+  
+    DIR *dr = opendir(bin_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(bin_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, bin_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[10 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/bin/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char include_src[strlen(data_dest) + 10];
+	strcpy(include_src, data_dest);
+	strcat(include_src, "/include/");
+  
+    dr = opendir(include_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(include_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, include_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[14 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/include/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char lib_src[strlen(data_dest) + 6];
+	strcpy(lib_src, data_dest);
+	strcat(lib_src, "/lib/");
+  
+    dr = opendir(lib_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(lib_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, lib_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[10 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/lib/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char lib32_src[strlen(data_dest) + 8];
+	strcpy(lib32_src, data_dest);
+	strcat(lib32_src, "/lib32/");
+  
+    dr = opendir(lib32_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(lib32_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, lib32_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[12 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/lib32/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char lib64_src[strlen(data_dest) + 8];
+	strcpy(lib64_src, data_dest);
+	strcat(lib64_src, "/lib64/");
+  
+    dr = opendir(lib64_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(lib64_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, lib64_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[12 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/lib64/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char libexec_src[strlen(data_dest) + 10];
+	strcpy(libexec_src, data_dest);
+	strcat(libexec_src, "/libexec/");
+  
+    dr = opendir(libexec_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(libexec_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, libexec_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[14 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/libexec/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char local_src[strlen(data_dest) + 8];
+	strcpy(local_src, data_dest);
+	strcat(local_src, "/local/");
+  
+    dr = opendir(local_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(local_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, local_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[12 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/local/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char sbin_src[strlen(data_dest) + 7];
+	strcpy(sbin_src, data_dest);
+	strcat(sbin_src, "/sbin/");
+  
+    dr = opendir(sbin_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(sbin_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, sbin_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[11 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/sbin/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char share_src[strlen(data_dest) + 8];
+	strcpy(share_src, data_dest);
+	strcat(share_src, "/share/");
+  
+    dr = opendir(share_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(share_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, share_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[12 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/share/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
+
+    char src_src[strlen(data_dest) + 6];
+	strcpy(src_src, data_dest);
+	strcat(src_src, "/src/");
+  
+    dr = opendir(src_src);
+    if (dr != NULL)
+    {
+        while((de = readdir(dr)) != NULL)
+	    {
+	    	if(strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+	    		continue;
+
+	    	char srcpath[strlen(src_src) + strlen(de->d_name) + 1];
+	    	strcpy(srcpath, src_src);
+	    	strcat(srcpath, de->d_name);
+
+            char destpath[10 + strlen(de->d_name)];
+	    	strcpy(destpath, "/usr/src/");
+	    	strcat(destpath, de->d_name);
+
+            struct stat stats;
+            stat(srcpath, &stats);
+
+            long length;
+
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+
+            write_file(destpath, filedata, length);
+            chmod(destpath, stats.st_mode);
+	    }
+
+        closedir(dr);
+    }
 }
 
 void pre_install()
