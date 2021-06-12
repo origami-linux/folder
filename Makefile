@@ -15,11 +15,11 @@ all: x86_64/$(outdir)/folder
 
 # Compile
 x86_64/$(objdir)/%.o: $(srcdir)/%.c
-	$(linker) -c $< -target x86_64-elf-linux $(cflags) -o $@
+	$(compiler) -c $< -target x86_64-elf-linux $(cflags) -o $@
 
 # Link
 x86_64/$(outdir)/folder: $(patsubst $(objdir)/%,x86_64/$(objdir)/%,$(objs))
-	$(compiler) $(patsubst $(objdir)/%,x86_64/$(objdir)/%,$(objs)) -target x86_64-elf-linux $(ldflags) -o $@
+	$(linker) $(patsubst $(objdir)/%,x86_64/$(objdir)/%,$(objs)) -target x86_64-elf-linux $(ldflags) -o $@
 
 clean:
 	rm -f $(wildcard x86_64/obj/*.o) x86_64/out/folder
