@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <linux/limits.h>
+#include <locale.h>
 
 #include <curl/curl.h>
 #include <curl/easy.h>
@@ -13,6 +13,8 @@
 #include <archive_entry.h>
 
 #include "meta.h"
+#include "olutils/bool.h"
+#include "olutils/json.h"
 
 typedef struct
 {
@@ -271,7 +273,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -305,7 +307,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -339,7 +341,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -373,7 +375,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -407,7 +409,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -441,7 +443,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -475,7 +477,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -509,7 +511,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -543,7 +545,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -577,7 +579,7 @@ void install_pkg(Pkg pkg)
 
             long length;
 
-	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length);
+	    	char *filedata __attribute__((__cleanup__(free))) = read_file(srcpath, &length, true);
 
             write_file(destpath, filedata, length);
             chmod(destpath, stats.st_mode);
@@ -697,6 +699,8 @@ void pre_install()
 
 int main(int argc, char *argv[])
 {
+    setlocale(LC_ALL, "");
+
     if(access("/var/cache/folder/", F_OK) != 0)
         mkdir("/var/cache/folder/", 0007);
     else

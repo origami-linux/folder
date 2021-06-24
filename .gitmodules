@@ -1,4 +1,4 @@
-[submodule "OLML"]
-	path = OLML
-	url = https://github.com/origami-linux/OLML
+[submodule "olutils"]
+	path = olutils
+	url = https://github.com/origami-linux/olutils
 	branch = master

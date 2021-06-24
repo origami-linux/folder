@@ -5,7 +5,7 @@ pkg_meta parse_meta(char *path)
     pkg_meta ret;
 
     long length;
-    char *filedata __attribute__((__cleanup__(free))) = read_file(path, &length);
+    char *filedata __attribute__((__cleanup__(free))) = read_file(path, &length, false);
     json_object *meta_json = json_tokener_parse(filedata);
 
     ret.dev     = (char*)json_object_get_string(json_object_object_get(meta_json, "developer"));
